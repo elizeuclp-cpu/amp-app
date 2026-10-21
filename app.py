@@ -32,8 +32,14 @@ CABOS = {
         "R75": 0.0002028,
         "Cp": 552.81  # 449.771 (Alumínio) + 103.039 (Aço)
     },
+    "Grosbeak (636 MCM)": {
+        "D": 0.025146,
+        "R25": 0.0000902,
+        "R75": 0.0001077,
+        "Cp": 1045.981 # 850.957 (Alumínio) + 195.024 (Aço)
+    },
     # --- Adicione novos cabos abaixo (Descomente e preencha) ---
-    # "Grosbeak (636 MCM)": {"D": 0.025150, "R25": 0.0001080, "R75": 0.0001290, "Cp": 750.0},
+    # "Cabo Exemplo": {"D": 0.02000, "R25": 0.0001500, "R75": 0.0001800, "Cp": 700.0},
 }
 
 # ============================================================
@@ -157,9 +163,9 @@ with col1:
     st.subheader("⚙️ 1. CONFIGURAÇÕES E CLIMA")
     c1, c2 = st.columns(2)
     with c1:
-        temp_ar = st.number_input("Temp. do Ar (°C)", value=28.0, step=1.0)
-        vel_vento = st.number_input("Vel. do Vento (m/s)", min_value=0.0, value=0.6, step=0.1)
-        elevacao = st.number_input("Elevação (m)", value=600.0, step=50.0)
+        temp_ar = st.number_input("Temp. do Ar (°C)", value=40.0, step=1.0) # Alterado para 40 conforme a foto
+        vel_vento = st.number_input("Vel. do Vento (m/s)", min_value=0.0, value=0.61, step=0.1) # Alterado para 0.61
+        elevacao = st.number_input("Elevação (m)", value=0.0, step=50.0) # Alterado para 0 conforme a foto
     with c2:
         ang_vento = st.number_input("Ângulo do Vento (°)", min_value=0.0, max_value=90.0, value=90.0, step=10.0)
         rad_solar = st.number_input("Radiação Solar (W/m²)", min_value=0.0, value=1200.0, step=100.0)
@@ -202,7 +208,7 @@ with aba_estatica:
     col_m1, col_m2 = st.columns(2)
     with col_m1:
         if modo_calculo == "Temperatura (dada a Corrente)":
-            corrente = st.number_input("Corrente CA (A)", min_value=0.0, value=450.0, step=10.0)
+            corrente = st.number_input("Corrente CA (A)", min_value=0.0, value=400.0, step=10.0) # Alterado para 400 conforme a foto
             temp_alvo = 90.0
         else:
             temp_alvo = st.number_input("Temperatura Alvo (°C)", min_value=10.0, max_value=150.0, value=90.0, step=5.0)
