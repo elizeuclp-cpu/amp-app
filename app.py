@@ -24,10 +24,12 @@ st.markdown("---")
 # ============================================================
 CABOS = {
     "Linnet (336,4 MCM)": {
-        "D": 0.018288, "R25": 0.0001695, "R75": 0.0002028, "Cp": 552.81
+        "D": 0.018288, "R25": 0.0001695, "R75": 0.0002028, "Cp": 552.81,
+        "cp_outer": 449.771, "cp_core": 103.039
     },
     "Grosbeak (636 MCM)": {
-        "D": 0.025146, "R25": 0.0000902, "R75": 0.0001077, "Cp": 1045.981
+        "D": 0.025146, "R25": 0.0000902, "R75": 0.0001077, "Cp": 1045.981,
+        "cp_outer": 850.957, "cp_core": 195.024
     },
 }
 
@@ -186,16 +188,15 @@ with aba_estatica:
         st.plotly_chart(fig, use_container_width=True)
 
     # ========================================================
-    # FUNÇÃO DE RELATÓRIO SAZONAL
+    # FUNÇÃO DE RELATÓRIO SAZONAL DETALHADO
     # ========================================================
     st.markdown("---")
     st.subheader("📑 Relatório Sazonal Completo")
     
-    gerar_relatorio = st.checkbox("Habilitar configurações e gerar relatório completo (50°C a 75°C)")
+    gerar_relatorio = st.checkbox("Habilitar configurações e gerar relatório detalhado (50°C a 75°C)")
     
     if gerar_relatorio:
         st.markdown("### ⚙️ Configurações Climáticas Adicionais")
-        st.write("Insira os dados específicos para os cenários de Verão/Inverno e Dia/Noite.")
         
         col_r1, col_r2 = st.columns(2)
         with col_r1:
@@ -212,31 +213,61 @@ with aba_estatica:
 
         if st.button("📄 Gerar Relatório e PDF", type="primary", use_container_width=True):
             
-            # 1. Gera os dados
+            # 1. Gera os dados da tabela (50 a 75)
             temps_tab = np.arange(50.0, 75.5, 0.5)
             dados = []
             
             for t in temps_tab:
-                # Verão Dia (com sol)
                 i_vd = calcular_ampacidade_estatica(t, t_verao_dia, v_dia, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-                # Verão Noite (sem sol)
                 i_vn = calcular_ampacidade_estatica(t, t_verao_noite, v_noite, ang_vento, 0.0, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-                # Inverno Dia (com sol)
                 i_id = calcular_ampacidade_estatica(t, t_inverno_dia, v_dia, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-                # Inverno Noite (sem sol)
                 i_in = calcular_ampacidade_estatica(t, t_inverno_noite, v_noite, ang_vento, 0.0, alpha_abs, epsilon, elevacao, diametro, r25, r75)
                 
                 dados.append([t, i_vd, i_vn, i_id, i_in])
                 
             df_rel = pd.DataFrame(dados, columns=[
-                "Temperatura (°C)", 
-                "Verão Dia (A)", 
-                "Verão Noite (A)", 
-                "Inverno Dia (A)", 
-                "Inverno Noite (A)"
+                "Temperatura (°C)", "Verão Dia (A)", "Verão Noite (A)", "Inverno Dia (A)", "Inverno Noite (A)"
             ])
 
-            # 2. Exibe na tela
+            # 2. Monta o Memorial Descritivo Completo (Igual PLS-CADD)
+            memorial_texto = f"""Método de Cálculo: IEEE Standard 738-2006
+----------------------------------------------------------------------
+CONDIÇÕES CLIMÁTICAS BASE
+Temperatura do Ar:                  {temp_ar:8.3f}  (°C)
+Velocidade do Vento:                {vel_vento:8.3f}  (m/s)
+Ângulo Vento-Cabo:                  {ang_vento:8.3f}  (°)
+
+CONDIÇÕES SOLARES
+Radiação Solar Medida:             {rad_solar:8.3f}  (W/m²)
+
+PROPRIEDADES DO CONDUTOR
+Descrição:                          {cabo_nome}
+Azimute:                             {90.0:8.3f}  (°)
+Resistência CA a 25.0 (°C):         {r25*1000:8.4f}  (Ω/km)
+Resistência CA a 75.0 (°C):         {r75*1000:8.4f}  (Ω/km)
+Absortividade Solar:                {alpha_abs:8.3f}
+Emissividade:                       {epsilon:8.3f}
+Diâmetro Externo:                   {diametro*1000:8.3f}  (mm)
+Diâmetro do Fio Externo:             0.000  (mm)
+Camadas de Fios Externos:                0
+Acabamento Superficial Externo:     Liso
+Capacidade Térmica Externa (Al):    {cabo_dados['cp_outer']:8.3f}  (W-s/m-°C)
+Cabo é termicamente bimetálico:     Sim
+Diâmetro do Núcleo:                  0.000  (mm)
+Capacidade Térmica Núcleo (Aço):    {cabo_dados['cp_core']:8.3f}  (W-s/m-°C)
+Elevação acima do nível do mar:     {elevacao:8.3f}  (m)
+
+CONFIGURAÇÕES SAZONAIS
+Velocidade Vento (Dia):             {v_dia:8.3f}  (m/s)
+Velocidade Vento (Noite):           {v_noite:8.3f}  (m/s)
+Temperatura Ambiente (Verão Dia):   {t_verao_dia:8.3f}  (°C)
+Temperatura Ambiente (Verão Noite): {t_verao_noite:8.3f}  (°C)
+Temperatura Ambiente (Inverno Dia): {t_inverno_dia:8.3f}  (°C)
+Temperatura Ambiente (Inv. Noite):  {t_inverno_noite:8.3f}  (°C)
+"""
+            st.markdown("### 📝 Memorial Descritivo")
+            st.code(memorial_texto, language="text")
+
             st.markdown("### 📊 Tabela de Ampacidade Sazonal")
             st.dataframe(df_rel.style.format({
                 "Temperatura (°C)": "{:.1f}",
@@ -251,17 +282,17 @@ with aba_estatica:
                 pdf = FPDF()
                 pdf.add_page()
                 
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(0, 10, txt="Relatorio de Ampacidade Sazonal - IEEE 738-2006", ln=True, align='C')
+                pdf.set_font("Arial", 'B', 14)
+                pdf.cell(0, 10, txt="Relatório de Ampacidade Sazonal", ln=True, align='C')
+                pdf.set_font("Arial", 'B', 10)
+                pdf.cell(0, 8, txt="IEEE Standard 738-2006", ln=True, align='C')
                 pdf.ln(5)
                 
-                # Texto do memorial (resumido para o PDF)
+                # Memorial no PDF (Fonte menorzinha para caber tudo)
                 pdf.set_font("Courier", size=8)
-                pdf.cell(0, 4, txt=f"Conductor: {cabo_nome} | Diametro: {diametro*1000:.2f} mm | Elevacao: {elevacao:.0f} m", ln=True)
-                pdf.cell(0, 4, txt=f"Solar (Dia): {rad_solar:.0f} W/m2 | Angulo Vento: {ang_vento:.0f} deg | Absort: {alpha_abs} | Emiss: {epsilon}", ln=True)
-                pdf.ln(2)
-                pdf.cell(0, 4, txt=f"Vento Dia: {v_dia} m/s | Vento Noite: {v_noite} m/s", ln=True)
-                pdf.cell(0, 4, txt=f"Temps: Verao D: {t_verao_dia}C | Verao N: {t_verao_noite}C | Inverno D: {t_inverno_dia}C | Inverno N: {t_inverno_noite}C", ln=True)
+                for linha in memorial_texto.split('\n'):
+                    pdf.cell(0, 4, txt=linha.encode('latin-1', 'replace').decode('latin-1'), ln=True)
+                
                 pdf.ln(5)
                 
                 # Tabela
@@ -292,7 +323,7 @@ with aba_estatica:
             try:
                 pdf_bytes = gerar_pdf()
                 st.download_button(
-                    label="📥 Baixar Relatório Sazonal em PDF",
+                    label="📥 Baixar Relatório Sazonal Detalhado (PDF)",
                     data=pdf_bytes,
                     file_name=f"relatorio_sazonal_{cabo_nome.split(' ')[0]}.pdf",
                     mime="application/pdf",
@@ -389,7 +420,4 @@ with aba_transiente:
         
         if T_limite:
             fig_t.add_hline(y=T_limite, line_dash="dash", line_color="orange", annotation_text=f"Limite ({T_limite}°C)")
-            fig_t.add_hline(y=Tc_inicial, line_dash="dot", line_color="gray", annotation_text=f"Partida ({Tc_inicial:.1f}°C)")
-            
-        fig_t.update_layout(title="Curva de Aquecimento Transiente", xaxis_title="Tempo (minutos)", yaxis_title="Temperatura (°C)", template="plotly_white", hovermode="x unified")
-        st.plotly_chart(fig_t, use_container_width=True)
+            fig_t.add_hline(y=Tc_inicial, line_dash="dot", line_color="gray", annotation_text=f"Pa
