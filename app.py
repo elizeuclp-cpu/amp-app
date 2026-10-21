@@ -20,22 +20,15 @@ st.caption("Cálculo térmico de regime permanente, transitório e geração de 
 st.markdown("---")
 
 # ============================================================
-# BANCO DE DADOS DE CABOS (ESPAÇO RESERVADO)
+# BANCO DE DADOS DE CABOS
 # ============================================================
 CABOS = {
     "Linnet (336,4 MCM)": {
-        "D": 0.018288, 
-        "R25": 0.0001695, 
-        "R75": 0.0002028,
-        "Cp": 552.81  # 449.771 (Outer) + 103.039 (Core)
+        "D": 0.018288, "R25": 0.0001695, "R75": 0.0002028, "Cp": 552.81
     },
     "Grosbeak (636 MCM)": {
-        "D": 0.025146,
-        "R25": 0.0000902,
-        "R75": 0.0001077,
-        "Cp": 1045.981 # 850.957 (Outer) + 195.024 (Core)
+        "D": 0.025146, "R25": 0.0000902, "R75": 0.0001077, "Cp": 1045.981
     },
-    # Adicione novos cabos aqui no futuro
 }
 
 # ============================================================
@@ -74,38 +67,13 @@ def calcular_termico(I, Tc, Ta, V, angulo_vento, qs_global, alpha_abs, epsilon, 
     dT = q_liquido / Cp
     return dT
 
-def simular_transiente(I, Tc_inicial, Ta, V, angulo_vento, qs_global, alpha_abs, epsilon, elevacao, D, R_25, R_75, Cp, T_limite=None, max_tempo=14400):
-    Tc = Tc_inicial
-    tempo = 0
-    tempos = [0]
-    temps = [Tc]
-    dt_step = 1.0 
-    
-    while tempo < max_tempo:
-        dT = calcular_termico(I, Tc, Ta, V, angulo_vento, qs_global, alpha_abs, epsilon, elevacao, D, R_25, R_75, Cp)
-        
-        if abs(dT) < 0.0001 and tempo > 10:
-            break
-            
-        Tc += dT * dt_step
-        tempo += dt_step
-        tempos.append(tempo)
-        temps.append(Tc)
-        
-        if T_limite and Tc >= T_limite:
-            break
-            
-    return tempos, temps
-
 def calcular_temperatura_estatica(I, Ta, V, angulo_vento, qs_global, alpha_abs, epsilon, elevacao, D, R_25, R_75):
     T_min, T_max = Ta, 250.0 
     for _ in range(100):
         T_medio = (T_min + T_max) / 2
         dT = calcular_termico(I, T_medio, Ta, V, angulo_vento, qs_global, alpha_abs, epsilon, elevacao, D, R_25, R_75, 1.0)
-        
         if dT > 0: T_min = T_medio
         else: T_max = T_medio
-            
         if abs(dT) < 0.0001: break
     return T_medio
 
@@ -138,20 +106,20 @@ def calcular_ampacidade_estatica(Tc_alvo, Ta, V, angulo_vento, qs_global, alpha_
     return np.sqrt(q_liquido / R_ca_tc)
 
 # ============================================================
-# INTERFACE DE ENTRADA
+# INTERFACE DE ENTRADA (GERAL)
 # ============================================================
 col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
-    st.subheader("⚙️ 1. CONFIGURAÇÕES E CLIMA")
+    st.subheader("⚙️ 1. CONFIGURAÇÕES BASE")
     c1, c2 = st.columns(2)
     with c1:
-        temp_ar = st.number_input("Temp. do Ar (°C)", value=40.0, step=1.0)
-        vel_vento = st.number_input("Vel. do Vento (m/s)", min_value=0.0, value=0.61, step=0.1)
+        temp_ar = st.number_input("Temp. do Ar (°C) [Base]", value=40.0, step=1.0)
+        vel_vento = st.number_input("Vel. do Vento (m/s) [Base]", min_value=0.0, value=0.61, step=0.1)
         elevacao = st.number_input("Elevação (m)", value=0.0, step=50.0)
     with c2:
         ang_vento = st.number_input("Ângulo do Vento (°)", min_value=0.0, max_value=90.0, value=90.0, step=10.0)
-        rad_solar = st.number_input("Radiação Solar (W/m²)", min_value=0.0, value=1200.0, step=100.0)
+        rad_solar = st.number_input("Radiação Solar (W/m²) [Dia]", min_value=0.0, value=1200.0, step=100.0)
         
 with col2:
     st.subheader("🔌 2. PROPRIEDADES DO CONDUTOR")
@@ -214,114 +182,125 @@ with aba_estatica:
             fig.add_trace(go.Scatter(x=[I_plot], y=[T_plot], mode='markers+text', name='Ponto Atual', text=[f"{T_plot:.1f} °C"], textposition="top center", marker=dict(color='red', size=12)))
         
         fig.add_hline(y=90, line_dash="dash", line_color="orange", annotation_text="Limite 90°C")
-        fig.update_layout(title="Curva de Ampacidade", xaxis_title="Corrente CA (A)", yaxis_title="Temperatura (°C)", yaxis=dict(range=[temp_ar, 110]), template="plotly_white")
+        fig.update_layout(title="Curva de Ampacidade", xaxis_title="Corrente CA (A)", yaxis_title="Temperatura (°C)", yaxis_range=[temp_ar, 110], template="plotly_white")
         st.plotly_chart(fig, use_container_width=True)
 
     # ========================================================
-    # FUNÇÃO DE RELATÓRIO PLS-CADD E PDF
+    # FUNÇÃO DE RELATÓRIO SAZONAL
     # ========================================================
     st.markdown("---")
-    st.subheader("📑 Relatório Completo de Ampacidade")
-    st.write("Gera uma tabela de 25°C a 75°C (passo de 0,5°C) com e sem radiação solar, no formato PLS-CADD.")
-
-    if st.button("📄 Gerar Relatório (Estilo PLS-CADD)", type="secondary", use_container_width=True):
+    st.subheader("📑 Relatório Sazonal Completo")
+    
+    gerar_relatorio = st.checkbox("Habilitar configurações e gerar relatório completo (50°C a 75°C)")
+    
+    if gerar_relatorio:
+        st.markdown("### ⚙️ Configurações Climáticas Adicionais")
+        st.write("Insira os dados específicos para os cenários de Verão/Inverno e Dia/Noite.")
         
-        # 1. Gera os dados da tabela
-        temps_tab = np.arange(25.0, 75.5, 0.5)
-        dados = []
-        for t in temps_tab:
-            i_c_sol = calcular_ampacidade_estatica(t, temp_ar, vel_vento, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-            i_s_sol = calcular_ampacidade_estatica(t, temp_ar, vel_vento, ang_vento, 0.0, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-            dados.append([t, i_c_sol, i_s_sol, i_c_sol - i_s_sol])
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            st.markdown("**Ventos (independente da estação)**")
+            v_dia = st.number_input("Vento durante o Dia (m/s)", value=vel_vento, step=0.1)
+            v_noite = st.number_input("Vento durante a Noite (m/s)", value=vel_vento, step=0.1)
             
-        df_rel = pd.DataFrame(dados, columns=["Temperatura (°C)", "Ampacidade c/ Sol (A)", "Ampacidade s/ Sol (A)", "Ganho Solar (A)"])
+        with col_r2:
+            st.markdown("**Temperaturas Ambientes (°C)**")
+            t_verao_dia = st.number_input("Verão - Dia (°C)", value=temp_ar + 5.0, step=1.0)
+            t_verao_noite = st.number_input("Verão - Noite (°C)", value=temp_ar - 5.0, step=1.0)
+            t_inverno_dia = st.number_input("Inverno - Dia (°C)", value=temp_ar - 10.0, step=1.0)
+            t_inverno_noite = st.number_input("Inverno - Noite (°C)", value=temp_ar - 15.0, step=1.0)
 
-        # 2. Monta o texto do Memorial (Idêntico ao PLS)
-        memorial_texto = f"""IEEE Standard 738-2006 method of calculation
-------------------------------------------------------------
-Weather Conditions
-Air temperature:                    {temp_ar:6.3f}  (deg C)
-Wind speed:                         {vel_vento:6.3f}  (m/s)
-Wind to conductor angle:            {ang_vento:6.3f}  (deg)
+        if st.button("📄 Gerar Relatório e PDF", type="primary", use_container_width=True):
+            
+            # 1. Gera os dados
+            temps_tab = np.arange(50.0, 75.5, 0.5)
+            dados = []
+            
+            for t in temps_tab:
+                # Verão Dia (com sol)
+                i_vd = calcular_ampacidade_estatica(t, t_verao_dia, v_dia, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
+                # Verão Noite (sem sol)
+                i_vn = calcular_ampacidade_estatica(t, t_verao_noite, v_noite, ang_vento, 0.0, alpha_abs, epsilon, elevacao, diametro, r25, r75)
+                # Inverno Dia (com sol)
+                i_id = calcular_ampacidade_estatica(t, t_inverno_dia, v_dia, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
+                # Inverno Noite (sem sol)
+                i_in = calcular_ampacidade_estatica(t, t_inverno_noite, v_noite, ang_vento, 0.0, alpha_abs, epsilon, elevacao, diametro, r25, r75)
+                
+                dados.append([t, i_vd, i_vn, i_id, i_in])
+                
+            df_rel = pd.DataFrame(dados, columns=[
+                "Temperatura (°C)", 
+                "Verão Dia (A)", 
+                "Verão Noite (A)", 
+                "Inverno Dia (A)", 
+                "Inverno Noite (A)"
+            ])
 
-Solar Conditions
-Measured solar radiation:           {rad_solar:6.3f}  (Watt/m^2)
+            # 2. Exibe na tela
+            st.markdown("### 📊 Tabela de Ampacidade Sazonal")
+            st.dataframe(df_rel.style.format({
+                "Temperatura (°C)": "{:.1f}",
+                "Verão Dia (A)": "{:.1f}",
+                "Verão Noite (A)": "{:.1f}",
+                "Inverno Dia (A)": "{:.1f}",
+                "Inverno Noite (A)": "{:.1f}"
+            }), use_container_width=True, height=400)
 
-Conductor Properties
-Description: {cabo_nome}
-AC resistance at 25.0 (deg C):      {r25*1000:6.4f}  (Ohm/km)
-AC resistance at 75.0 (deg C):      {r75*1000:6.4f}  (Ohm/km)
-Solar absorptivity:                 {alpha_abs:6.3f}
-Emissivity:                         {epsilon:6.3f}
-Outer diameter:                     {diametro*1000:6.3f}  (mm)
-Elevation above sea level:          {elevacao:6.3f}  (m)
-"""
-        
-        st.markdown("### 📝 Memorial Descritivo")
-        st.code(memorial_texto, language="text")
-
-        st.markdown("### 📊 Tabela de Ampacidade")
-        st.dataframe(df_rel.style.format({
-            "Temperatura (°C)": "{:.1f}",
-            "Ampacidade c/ Sol (A)": "{:.2f}",
-            "Ampacidade s/ Sol (A)": "{:.2f}",
-            "Ganho Solar (A)": "{:.2f}"
-        }), use_container_width=True, height=400)
-
-        # 3. Gera o PDF
-        def gerar_pdf():
-            pdf = FPDF()
-            pdf.add_page()
-            
-            # Título
-            pdf.set_font("Arial", 'B', 14)
-            pdf.cell(0, 10, txt="Relatorio de Ampacidade - IEEE 738-2006", ln=True, align='C')
-            pdf.ln(5)
-            
-            # Memorial
-            pdf.set_font("Courier", size=9)
-            for linha in memorial_texto.split('\n'):
-                pdf.cell(0, 4, txt=linha, ln=True)
-            
-            pdf.ln(10)
-            
-            # Tabela
-            pdf.set_font("Arial", 'B', 10)
-            col_widths = [40, 45, 45, 45]
-            headers = ["Temp (C)", "c/ Sol (A)", "s/ Sol (A)", "Ganho (A)"]
-            
-            for i, header in enumerate(headers):
-                pdf.cell(col_widths[i], 8, header, border=1, align='C')
-            pdf.ln()
-            
-            pdf.set_font("Arial", size=9)
-            for index, row in df_rel.iterrows():
-                # Negrito a cada 5 graus (25, 30, 35...)
-                if row["Temperatura (°C)"] % 5.0 == 0:
-                    pdf.set_font("Arial", 'B', 9)
-                else:
-                    pdf.set_font("Arial", size=9)
-                    
-                pdf.cell(col_widths[0], 6, f"{row['Temperatura (°C)']:.1f}", border=1, align='C')
-                pdf.cell(col_widths[1], 6, f"{row['Ampacidade c/ Sol (A)']:.2f}", border=1, align='C')
-                pdf.cell(col_widths[2], 6, f"{row['Ampacidade s/ Sol (A)']:.2f}", border=1, align='C')
-                pdf.cell(col_widths[3], 6, f"{row['Ganho Solar (A)']:.2f}", border=1, align='C')
+            # 3. Gera o PDF
+            def gerar_pdf():
+                pdf = FPDF()
+                pdf.add_page()
+                
+                pdf.set_font("Arial", 'B', 12)
+                pdf.cell(0, 10, txt="Relatorio de Ampacidade Sazonal - IEEE 738-2006", ln=True, align='C')
+                pdf.ln(5)
+                
+                # Texto do memorial (resumido para o PDF)
+                pdf.set_font("Courier", size=8)
+                pdf.cell(0, 4, txt=f"Conductor: {cabo_nome} | Diametro: {diametro*1000:.2f} mm | Elevacao: {elevacao:.0f} m", ln=True)
+                pdf.cell(0, 4, txt=f"Solar (Dia): {rad_solar:.0f} W/m2 | Angulo Vento: {ang_vento:.0f} deg | Absort: {alpha_abs} | Emiss: {epsilon}", ln=True)
+                pdf.ln(2)
+                pdf.cell(0, 4, txt=f"Vento Dia: {v_dia} m/s | Vento Noite: {v_noite} m/s", ln=True)
+                pdf.cell(0, 4, txt=f"Temps: Verao D: {t_verao_dia}C | Verao N: {t_verao_noite}C | Inverno D: {t_inverno_dia}C | Inverno N: {t_inverno_noite}C", ln=True)
+                pdf.ln(5)
+                
+                # Tabela
+                pdf.set_font("Arial", 'B', 8)
+                col_widths = [20, 38, 38, 38, 38]
+                headers = ["Temp(C)", "Verao Dia", "Verao Noite", "Inverno Dia", "Inv. Noite"]
+                
+                for i, header in enumerate(headers):
+                    pdf.cell(col_widths[i], 8, header, border=1, align='C')
                 pdf.ln()
+                
+                pdf.set_font("Arial", size=8)
+                for index, row in df_rel.iterrows():
+                    if row["Temperatura (°C)"] % 5.0 == 0:
+                        pdf.set_font("Arial", 'B', 8)
+                    else:
+                        pdf.set_font("Arial", size=8)
+                        
+                    pdf.cell(col_widths[0], 5, f"{row['Temperatura (°C)']:.1f}", border=1, align='C')
+                    pdf.cell(col_widths[1], 5, f"{row['Verão Dia (A)']:.1f}", border=1, align='C')
+                    pdf.cell(col_widths[2], 5, f"{row['Verão Noite (A)']:.1f}", border=1, align='C')
+                    pdf.cell(col_widths[3], 5, f"{row['Inverno Dia (A)']:.1f}", border=1, align='C')
+                    pdf.cell(col_widths[4], 5, f"{row['Inverno Noite (A)']:.1f}", border=1, align='C')
+                    pdf.ln()
 
-            return pdf.output(dest="S").encode("latin-1")
+                return pdf.output(dest="S").encode("latin-1")
 
-        try:
-            pdf_bytes = gerar_pdf()
-            st.download_button(
-                label="📥 Baixar Relatório em PDF",
-                data=pdf_bytes,
-                file_name=f"relatorio_ampacidade_{cabo_nome.split(' ')[0]}.pdf",
-                mime="application/pdf",
-                type="primary",
-                use_container_width=True
-            )
-        except Exception as e:
-            st.error(f"Erro ao gerar PDF: {e}")
+            try:
+                pdf_bytes = gerar_pdf()
+                st.download_button(
+                    label="📥 Baixar Relatório Sazonal em PDF",
+                    data=pdf_bytes,
+                    file_name=f"relatorio_sazonal_{cabo_nome.split(' ')[0]}.pdf",
+                    mime="application/pdf",
+                    type="primary",
+                    use_container_width=True
+                )
+            except Exception as e:
+                st.error(f"Erro ao gerar PDF: {e}")
 
 # ------------------------------------------------------------
 # ABA 2: ANÁLISE TRANSIENTE
@@ -358,10 +337,26 @@ with aba_transiente:
 
     if st.button("⏱️ Simular Transiente", type="primary", use_container_width=True):
         
-        tempos, temps = simular_transiente(
-            I_sim, Tc_inicial, temp_ar, vel_vento, ang_vento, rad_solar, alpha_abs, epsilon, 
-            elevacao, diametro, r25, r75, cp, T_limite
-        )
+        Tc = Tc_inicial
+        tempo = 0
+        tempos = [0]
+        temps = [Tc]
+        dt_step = 1.0 
+        max_tempo = 14400
+        
+        while tempo < max_tempo:
+            dT = calcular_termico(I_sim, Tc, temp_ar, vel_vento, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75, cabo_dados["Cp"])
+            
+            if abs(dT) < 0.0001 and tempo > 10:
+                break
+                
+            Tc += dT * dt_step
+            tempo += dt_step
+            tempos.append(tempo)
+            temps.append(Tc)
+            
+            if T_limite and Tc >= T_limite:
+                break
         
         tempo_final = tempos[-1]
         temp_final = temps[-1]
@@ -387,7 +382,6 @@ with aba_transiente:
                 m3.metric("Status", "Estável (Não atingiu o limite)")
                 st.success(f"✅ O cabo NÃO atingiu {T_limite}°C. Mesmo com a sobrecarga de {I_sim} A, a temperatura estabilizou em {temp_final:.2f}°C.")
         
-        # Gráfico do Transiente
         fig_t = go.Figure()
         tempos_min = [t / 60 for t in tempos]
         
@@ -398,4 +392,4 @@ with aba_transiente:
             fig_t.add_hline(y=Tc_inicial, line_dash="dot", line_color="gray", annotation_text=f"Partida ({Tc_inicial:.1f}°C)")
             
         fig_t.update_layout(title="Curva de Aquecimento Transiente", xaxis_title="Tempo (minutos)", yaxis_title="Temperatura (°C)", template="plotly_white", hovermode="x unified")
-        st.plotly_chart(fig_t, use_container_width=True)
+        st.plotly_chart(fig_t, use_container_width=True)0
