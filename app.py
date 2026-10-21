@@ -116,11 +116,11 @@ with col1:
     st.subheader("⚙️ 1. CONFIGURAÇÕES BASE")
     c1, c2 = st.columns(2)
     with c1:
-        temp_ar = st.number_input("Temp. do Ar (°C) [Base]", value=40.0, step=1.0)
+        temp_ar = st.number_input("Temp. do Ar (C) [Base]", value=40.0, step=1.0)
         vel_vento = st.number_input("Vel. do Vento (m/s) [Base]", min_value=0.0, value=0.61, step=0.1)
         elevacao = st.number_input("Elevação (m)", value=0.0, step=50.0)
     with c2:
-        ang_vento = st.number_input("Ângulo do Vento (°)", min_value=0.0, max_value=90.0, value=90.0, step=10.0)
+        ang_vento = st.number_input("Ângulo do Vento (graus)", min_value=0.0, max_value=90.0, value=90.0, step=10.0)
         rad_solar = st.number_input("Radiação Solar (W/m²) [Dia]", min_value=0.0, value=1200.0, step=100.0)
         
 with col2:
@@ -129,9 +129,9 @@ with col2:
     cabo_dados = CABOS[cabo_nome]
     
     diametro = st.number_input("Diâmetro Externo D (m)", value=cabo_dados["D"], format="%.6f")
-    r25 = st.number_input("R CA a 25°C (Ω/m)", value=cabo_dados["R25"], format="%.7f")
-    r75 = st.number_input("R CA a 75°C (Ω/m)", value=cabo_dados["R75"], format="%.7f")
-    cp = st.number_input("Capacidade Térmica Cp (J/m·°C)", value=cabo_dados["Cp"], format="%.2f")
+    r25 = st.number_input("R CA a 25C (Ohm/m)", value=cabo_dados["R25"], format="%.7f")
+    r75 = st.number_input("R CA a 75C (Ohm/m)", value=cabo_dados["R75"], format="%.7f")
+    cp = st.number_input("Capacidade Térmica Cp (J/mC)", value=cabo_dados["Cp"], format="%.2f")
     
     st.markdown("---")
     st.markdown("**Propriedades de Superfície**")
@@ -162,13 +162,13 @@ with aba_estatica:
             corrente = st.number_input("Corrente CA (A)", min_value=0.0, value=400.0, step=10.0)
             temp_alvo = 90.0
         else:
-            temp_alvo = st.number_input("Temperatura Alvo (°C)", min_value=10.0, max_value=150.0, value=75.0, step=5.0)
+            temp_alvo = st.number_input("Temperatura Alvo (C)", min_value=10.0, max_value=150.0, value=75.0, step=5.0)
             corrente = 0.0
             
     if st.button("🔍 Calcular Regime Permanente", type="primary", use_container_width=True):
         if modo_calculo == "Temperatura (dada a Corrente)":
             Tc_eq = calcular_temperatura_estatica(corrente, temp_ar, vel_vento, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-            st.markdown(f"### Temperatura de Equilíbrio: <span style='color: #00CC96;'>{Tc_eq:.2f} °C</span>", unsafe_allow_html=True)
+            st.markdown(f"### Temperatura de Equilíbrio: <span style='color: #00CC96;'>{Tc_eq:.2f} C</span>", unsafe_allow_html=True)
             I_plot, T_plot = corrente, Tc_eq
         else:
             I_max = calcular_ampacidade_estatica(temp_alvo, temp_ar, vel_vento, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
@@ -181,10 +181,10 @@ with aba_estatica:
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=correntes, y=temps, mode='lines', name='Curva do Cabo', line=dict(color='royalblue', width=3)))
         if I_plot > 0 and T_plot < 150:
-            fig.add_trace(go.Scatter(x=[I_plot], y=[T_plot], mode='markers+text', name='Ponto Atual', text=[f"{T_plot:.1f} °C"], textposition="top center", marker=dict(color='red', size=12)))
+            fig.add_trace(go.Scatter(x=[I_plot], y=[T_plot], mode='markers+text', name='Ponto Atual', text=[f"{T_plot:.1f} C"], textposition="top center", marker=dict(color='red', size=12)))
         
-        fig.add_hline(y=90, line_dash="dash", line_color="orange", annotation_text="Limite 90°C")
-        fig.update_layout(title="Curva de Ampacidade", xaxis_title="Corrente CA (A)", yaxis_title="Temperatura (°C)", yaxis_range=[temp_ar, 110], template="plotly_white")
+        fig.add_hline(y=90, line_dash="dash", line_color="orange", annotation_text="Limite 90C")
+        fig.update_layout(title="Curva de Ampacidade", xaxis_title="Corrente CA (A)", yaxis_title="Temperatura (C)", yaxis_range=[temp_ar, 110], template="plotly_white")
         st.plotly_chart(fig, use_container_width=True)
 
     # ========================================================
@@ -193,7 +193,7 @@ with aba_estatica:
     st.markdown("---")
     st.subheader("📑 Relatório Sazonal Completo")
     
-    gerar_relatorio = st.checkbox("Habilitar configurações e gerar relatório detalhado (50°C a 75°C)")
+    gerar_relatorio = st.checkbox("Habilitar configurações e gerar relatório detalhado (50C a 75C)")
     
     if gerar_relatorio:
         st.markdown("### ⚙️ Configurações Climáticas Adicionais")
@@ -205,11 +205,11 @@ with aba_estatica:
             v_noite = st.number_input("Vento durante a Noite (m/s)", value=vel_vento, step=0.1)
             
         with col_r2:
-            st.markdown("**Temperaturas Ambientes (°C)**")
-            t_verao_dia = st.number_input("Verão - Dia (°C)", value=temp_ar + 5.0, step=1.0)
-            t_verao_noite = st.number_input("Verão - Noite (°C)", value=temp_ar - 5.0, step=1.0)
-            t_inverno_dia = st.number_input("Inverno - Dia (°C)", value=temp_ar - 10.0, step=1.0)
-            t_inverno_noite = st.number_input("Inverno - Noite (°C)", value=temp_ar - 15.0, step=1.0)
+            st.markdown("**Temperaturas Ambientes (C)**")
+            t_verao_dia = st.number_input("Verão - Dia (C)", value=temp_ar + 5.0, step=1.0)
+            t_verao_noite = st.number_input("Verão - Noite (C)", value=temp_ar - 5.0, step=1.0)
+            t_inverno_dia = st.number_input("Inverno - Dia (C)", value=temp_ar - 10.0, step=1.0)
+            t_inverno_noite = st.number_input("Inverno - Noite (C)", value=temp_ar - 15.0, step=1.0)
 
         if st.button("📄 Gerar Relatório e PDF", type="primary", use_container_width=True):
             
@@ -226,51 +226,51 @@ with aba_estatica:
                 dados.append([t, i_vd, i_vn, i_id, i_in])
                 
             df_rel = pd.DataFrame(dados, columns=[
-                "Temperatura (°C)", "Verão Dia (A)", "Verão Noite (A)", "Inverno Dia (A)", "Inverno Noite (A)"
+                "Temperatura (C)", "Verão Dia (A)", "Verão Noite (A)", "Inverno Dia (A)", "Inverno Noite (A)"
             ])
 
             # 2. Monta o Memorial Descritivo Completo (Igual PLS-CADD)
             memorial_texto = f"""Método de Cálculo: IEEE Standard 738-2006
 ----------------------------------------------------------------------
 CONDIÇÕES CLIMÁTICAS BASE
-Temperatura do Ar:                  {temp_ar:8.3f}  (°C)
+Temperatura do Ar:                  {temp_ar:8.3f}  (C)
 Velocidade do Vento:                {vel_vento:8.3f}  (m/s)
-Ângulo Vento-Cabo:                  {ang_vento:8.3f}  (°)
+Ângulo Vento-Cabo:                  {ang_vento:8.3f}  (graus)
 
 CONDIÇÕES SOLARES
-Radiação Solar Medida:             {rad_solar:8.3f}  (W/m²)
+Radiação Solar Medida:             {rad_solar:8.3f}  (W/m2)
 
 PROPRIEDADES DO CONDUTOR
 Descrição:                          {cabo_nome}
-Azimute:                             {90.0:8.3f}  (°)
-Resistência CA a 25.0 (°C):         {r25*1000:8.4f}  (Ω/km)
-Resistência CA a 75.0 (°C):         {r75*1000:8.4f}  (Ω/km)
+Azimute:                             {90.0:8.3f}  (graus)
+Resistência CA a 25.0 (C):          {r25*1000:8.4f}  (Ohm/km)
+Resistência CA a 75.0 (C):          {r75*1000:8.4f}  (Ohm/km)
 Absortividade Solar:                {alpha_abs:8.3f}
 Emissividade:                       {epsilon:8.3f}
 Diâmetro Externo:                   {diametro*1000:8.3f}  (mm)
 Diâmetro do Fio Externo:             0.000  (mm)
 Camadas de Fios Externos:                0
 Acabamento Superficial Externo:     Liso
-Capacidade Térmica Externa (Al):    {cabo_dados['cp_outer']:8.3f}  (W-s/m-°C)
+Capacidade Térmica Externa (Al):    {cabo_dados['cp_outer']:8.3f}  (W-s/m-C)
 Cabo é termicamente bimetálico:     Sim
 Diâmetro do Núcleo:                  0.000  (mm)
-Capacidade Térmica Núcleo (Aço):    {cabo_dados['cp_core']:8.3f}  (W-s/m-°C)
+Capacidade Térmica Núcleo (Aço):    {cabo_dados['cp_core']:8.3f}  (W-s/m-C)
 Elevação acima do nível do mar:     {elevacao:8.3f}  (m)
 
 CONFIGURAÇÕES SAZONAIS
 Velocidade Vento (Dia):             {v_dia:8.3f}  (m/s)
 Velocidade Vento (Noite):           {v_noite:8.3f}  (m/s)
-Temperatura Ambiente (Verão Dia):   {t_verao_dia:8.3f}  (°C)
-Temperatura Ambiente (Verão Noite): {t_verao_noite:8.3f}  (°C)
-Temperatura Ambiente (Inverno Dia): {t_inverno_dia:8.3f}  (°C)
-Temperatura Ambiente (Inv. Noite):  {t_inverno_noite:8.3f}  (°C)
+Temperatura Ambiente (Verão Dia):   {t_verao_dia:8.3f}  (C)
+Temperatura Ambiente (Verão Noite): {t_verao_noite:8.3f}  (C)
+Temperatura Ambiente (Inverno Dia): {t_inverno_dia:8.3f}  (C)
+Temperatura Ambiente (Inv. Noite):  {t_inverno_noite:8.3f}  (C)
 """
             st.markdown("### 📝 Memorial Descritivo")
             st.code(memorial_texto, language="text")
 
             st.markdown("### 📊 Tabela de Ampacidade Sazonal")
             st.dataframe(df_rel.style.format({
-                "Temperatura (°C)": "{:.1f}",
+                "Temperatura (C)": "{:.1f}",
                 "Verão Dia (A)": "{:.1f}",
                 "Verão Noite (A)": "{:.1f}",
                 "Inverno Dia (A)": "{:.1f}",
@@ -306,12 +306,12 @@ Temperatura Ambiente (Inv. Noite):  {t_inverno_noite:8.3f}  (°C)
                 
                 pdf.set_font("Arial", size=8)
                 for index, row in df_rel.iterrows():
-                    if row["Temperatura (°C)"] % 5.0 == 0:
+                    if row["Temperatura (C)"] % 5.0 == 0:
                         pdf.set_font("Arial", 'B', 8)
                     else:
                         pdf.set_font("Arial", size=8)
                         
-                    pdf.cell(col_widths[0], 5, f"{row['Temperatura (°C)']:.1f}", border=1, align='C')
+                    pdf.cell(col_widths[0], 5, f"{row['Temperatura (C)']:.1f}", border=1, align='C')
                     pdf.cell(col_widths[1], 5, f"{row['Verão Dia (A)']:.1f}", border=1, align='C')
                     pdf.cell(col_widths[2], 5, f"{row['Verão Noite (A)']:.1f}", border=1, align='C')
                     pdf.cell(col_widths[3], 5, f"{row['Inverno Dia (A)']:.1f}", border=1, align='C')
@@ -341,7 +341,7 @@ with aba_transiente:
     
     cenario = st.radio(
         "Selecione o Cenário:",
-        ["Aquecimento (Tempo até o Equilíbrio)", "Sobrecarga (Tempo até 75°C)"],
+        ["Aquecimento (Tempo até o Equilíbrio)", "Sobrecarga (Tempo até 75C)"],
         horizontal=True
     )
     
@@ -352,18 +352,18 @@ with aba_transiente:
             I_sim = st.number_input("Corrente de Operação (A)", min_value=0.0, value=450.0, step=10.0, key="i_aquec")
             Tc_inicial = temp_ar
             T_limite = None
-            st.info(f"O cabo começará na temperatura ambiente ({Tc_inicial:.1f}°C) e aquecerá com {I_sim} A.")
+            st.info(f"O cabo começará na temperatura ambiente ({Tc_inicial:.1f}C) e aquecerá com {I_sim} A.")
         else:
             I_inicial = st.number_input("Corrente Atual (Regime Permanente) (A)", min_value=0.0, value=400.0, step=10.0, key="i_ini")
             I_sim = st.number_input("Corrente de Emergência (Sobrecarga) (A)", min_value=0.0, value=700.0, step=10.0, key="i_emerg")
             T_limite = 75.0
             
             Tc_inicial = calcular_temperatura_estatica(I_inicial, temp_ar, vel_vento, ang_vento, rad_solar, alpha_abs, epsilon, elevacao, diametro, r25, r75)
-            st.warning(f"**Ponto de Partida:** O cabo está estabilizado em **{Tc_inicial:.2f} °C** operando com {I_inicial} A. De repente, a corrente salta para {I_sim} A.")
+            st.warning(f"**Ponto de Partida:** O cabo está estabilizado em **{Tc_inicial:.2f} C** operando com {I_inicial} A. De repente, a corrente salta para {I_sim} A.")
 
     with col_t2:
         st.markdown("**Informações da Simulação**")
-        st.write("- A simulação rodará automaticamente até atingir o equilíbrio ou o limite de 75°C.")
+        st.write("- A simulação rodará automaticamente até atingir o equilíbrio ou o limite de 75C.")
         st.write("- Não é necessário definir o tempo máximo.")
 
     if st.button("⏱️ Simular Transiente", type="primary", use_container_width=True):
@@ -398,20 +398,20 @@ with aba_transiente:
         m1, m2, m3 = st.columns(3)
         
         if cenario == "Aquecimento (Tempo até o Equilíbrio)":
-            m1.metric("Temperatura Final", f"{temp_final:.2f} °C")
+            m1.metric("Temperatura Final", f"{temp_final:.2f} C")
             m2.metric("Tempo para Estabilizar", f"{tempo_final/60:.1f} minutos")
-            m3.metric("Gradiente Térmico", f"{(temp_final - temp_ar):.1f} °C")
+            m3.metric("Gradiente Térmico", f"{(temp_final - temp_ar):.1f} C")
         else:
             if temp_final >= T_limite - 0.1: 
-                m1.metric("Temperatura Limite", f"{temp_final:.2f} °C")
+                m1.metric("Temperatura Limite", f"{temp_final:.2f} C")
                 m2.metric("Tempo de Sobrecarga Segura", f"{tempo_final/60:.2f} minutos")
                 m3.metric("Corrente de Emergência", f"{I_sim} A")
-                st.error(f"⚠️ O cabo partiu de {Tc_inicial:.1f}°C e atingiu a temperatura limite de {T_limite}°C. Você tem **{tempo_final/60:.1f} minutos** para aliviar a carga antes de danificar o condutor.")
+                st.error(f"⚠️ O cabo partiu de {Tc_inicial:.1f}C e atingiu a temperatura limite de {T_limite}C. Você tem **{tempo_final/60:.1f} minutos** para aliviar a carga antes de danificar o condutor.")
             else:
-                m1.metric("Temperatura Final", f"{temp_final:.2f} °C")
+                m1.metric("Temperatura Final", f"{temp_final:.2f} C")
                 m2.metric("Tempo de Simulação", f"{tempo_final/60:.1f} minutos")
                 m3.metric("Status", "Estável (Não atingiu o limite)")
-                st.success(f"✅ O cabo NÃO atingiu {T_limite}°C. Mesmo com a sobrecarga de {I_sim} A, a temperatura estabilizou em {temp_final:.2f}°C.")
+                st.success(f"✅ O cabo NÃO atingiu {T_limite}C. Mesmo com a sobrecarga de {I_sim} A, a temperatura estabilizou em {temp_final:.2f}C.")
         
         fig_t = go.Figure()
         tempos_min = [t / 60 for t in tempos]
@@ -419,5 +419,8 @@ with aba_transiente:
         fig_t.add_trace(go.Scatter(x=tempos_min, y=temps, mode='lines', name=f'Corrente = {I_sim} A', line=dict(color='firebrick', width=3)))
         
         if T_limite:
-            fig_t.add_hline(y=T_limite, line_dash="dash", line_color="orange", annotation_text=f"Limite ({T_limite}°C)")
-            fig_t.add_hline(y=Tc_inicial, line_dash="dot", line_color="gray", annotation_text=f"Pa
+            fig_t.add_hline(y=T_limite, line_dash="dash", line_color="orange", annotation_text=f"Limite ({T_limite} C)")
+            fig_t.add_hline(y=Tc_inicial, line_dash="dot", line_color="gray", annotation_text=f"Partida ({Tc_inicial:.1f} C)")
+            
+        fig_t.update_layout(title="Curva de Aquecimento Transiente", xaxis_title="Tempo (minutos)", yaxis_title="Temperatura (C)", template="plotly_white", hovermode="x unified")
+        st.plotly_chart(fig_t, use_container_width=True)
