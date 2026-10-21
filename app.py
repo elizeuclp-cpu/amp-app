@@ -392,4 +392,4 @@ with aba_transiente:
             fig_t.add_hline(y=Tc_inicial, line_dash="dot", line_color="gray", annotation_text=f"Partida ({Tc_inicial:.1f}°C)")
             
         fig_t.update_layout(title="Curva de Aquecimento Transiente", xaxis_title="Tempo (minutos)", yaxis_title="Temperatura (°C)", template="plotly_white", hovermode="x unified")
-        st.plotly_chart(fig_t, use_container_width=True)0
+        st.plotly_chart(fig_t, use_container_width=True)
