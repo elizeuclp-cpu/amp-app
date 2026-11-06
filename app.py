@@ -17,6 +17,7 @@ st.set_page_config(
 
 st.title("⚡ Ampacidade de Condutores - IEEE 738-2006")
 st.caption("Cálculo térmico de regime permanente, transitório, relatórios e processamento em lote.")
+st.caption("Elaborado por: Elizeu Júnior")
 st.markdown("---")
 
 # ============================================================
